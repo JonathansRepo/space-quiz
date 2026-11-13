@@ -182,6 +182,16 @@
       { question: "Which planet has the largest and most visible ring system?", answers: ["Neptune", "Uranus", "Saturn", "Jupiter"], correct: 2, fact: "Saturn's spectacular rings are made mostly of ice and rock." }
     ];
 
+    function shuffleQuestions(questionList) {
+      const shuffled = [...questionList];
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      }
+      return shuffled;
+    }
+
+    let attemptQuestions = shuffleQuestions(questions);
     const quiz = document.getElementById("quiz");
     const result = document.getElementById("result");
     const answers = document.getElementById("answers");
@@ -208,7 +218,7 @@
 
     function renderQuestion() {
       answered = false;
-      const current = questions[index];
+      const current = attemptQuestions[index];
       document.getElementById("question-count").textContent = `Question ${index + 1} of ${questions.length}`;
       document.getElementById("score").textContent = `${score} / ${questions.length}`;
       document.getElementById("question").textContent = current.question;
@@ -238,7 +248,7 @@
     function selectAnswer(choice) {
       if (answered) return;
       answered = true;
-      const current = questions[index];
+      const current = attemptQuestions[index];
       const isCorrect = choice === current.correct;
       if (isCorrect) score++;
       else missedQuestions.push({
@@ -333,6 +343,7 @@
       index = 0;
       score = 0;
       missedQuestions = [];
+      attemptQuestions = shuffleQuestions(questions);
       document.getElementById("review-list").replaceChildren();
       document.getElementById("review-list").hidden = false;
       document.getElementById("review-message").textContent = "";
