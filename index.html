@@ -100,8 +100,13 @@
     .result-emoji { display: grid; place-items: center; width: 86px; height: 86px; margin: 0 auto 18px; border-radius: 28px; background: var(--purple-soft); font-size: 44px; animation: pop .5s ease; }
     .result h2 { font-size: 27px; }
     .result p { color: var(--muted); }
-    .result-score { margin: 22px 0; padding: 17px; border-radius: 12px; background: var(--purple-soft); color: var(--purple); font-weight: 800; }
-    .result-score strong { font-size: 31px; letter-spacing: -.04em; }
+    .result-scores { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 22px 0; }
+    .result-score { min-width: 0; padding: 17px 10px; border-radius: 12px; background: var(--purple-soft); color: var(--purple); font-weight: 800; }
+    .result-score-label, .result-score-detail { display: block; }
+    .result-score-label { color: var(--ink); font-size: 10px; letter-spacing: .08em; text-transform: uppercase; }
+    .result-score strong { display: block; margin: 3px 0; font-size: clamp(22px, 6vw, 31px); letter-spacing: -.04em; }
+    .result-score-detail { font-size: 12px; }
+    .result-storage-warning { margin: 0; padding: 11px 13px; border-radius: 10px; background: var(--red-soft); color: var(--red) !important; font-size: 13px; }
     [hidden] { display: none !important; }
     @keyframes shake { 20%, 60% { transform: translateX(-6px); } 40%, 80% { transform: translateX(6px); } }
     @keyframes pop { 50% { transform: scale(1.025); } }
@@ -140,7 +145,11 @@
         <div class="eyebrow">Mission complete</div>
         <h2 id="result-title"></h2>
         <p id="result-message"></p>
-        <div class="result-score"><strong id="result-score"></strong><br>questions correct</div>
+        <div class="result-scores">
+          <div class="result-score"><span class="result-score-label">Current score</span><strong id="result-score"></strong><span class="result-score-detail">questions correct</span></div>
+          <div class="result-score"><span class="result-score-label">Personal best</span><strong id="result-best"></strong><span class="result-score-detail">questions correct</span></div>
+        </div>
+        <p id="result-storage-warning" class="result-storage-warning" role="status" hidden>Your personal best could not be saved to this browser. It will only be available during this visit.</p>
         <button id="restart" class="primary" type="button">Play again <span aria-hidden="true">↗</span></button>
       </div>
     </section>
@@ -168,6 +177,20 @@
     let index = 0;
     let score = 0;
     let answered = false;
+    let bestScore = null;
+    let bestScoreStorageAvailable = true;
+
+    try {
+      const savedBest = window.localStorage.getItem("orbit-personal-best");
+      if (savedBest !== null && savedBest.trim() !== "") {
+        const parsedBest = Number(savedBest);
+        if (Number.isInteger(parsedBest) && parsedBest >= 0 && parsedBest <= questions.length) {
+          bestScore = parsedBest;
+        }
+      }
+    } catch {
+      bestScoreStorageAvailable = false;
+    }
 
     function renderQuestion() {
       answered = false;
@@ -228,6 +251,16 @@
     }
 
     function showResults() {
+      if (bestScore === null || score > bestScore) {
+        bestScore = score;
+        if (bestScoreStorageAvailable) {
+          try {
+            window.localStorage.setItem("orbit-personal-best", String(bestScore));
+          } catch {
+            bestScoreStorageAvailable = false;
+          }
+        }
+      }
       quiz.hidden = true;
       result.hidden = false;
       const reaction = score >= 8
@@ -239,6 +272,8 @@
       document.getElementById("result-title").textContent = reaction.title;
       document.getElementById("result-message").textContent = reaction.message;
       document.getElementById("result-score").textContent = `${score} / ${questions.length}`;
+      document.getElementById("result-best").textContent = `${bestScore} / ${questions.length}`;
+      document.getElementById("result-storage-warning").hidden = bestScoreStorageAvailable;
       result.focus();
     }
 
