@@ -107,6 +107,14 @@
     .result-score strong { display: block; margin: 3px 0; font-size: clamp(22px, 6vw, 31px); letter-spacing: -.04em; }
     .result-score-detail { font-size: 12px; }
     .result-storage-warning { margin: 0; padding: 11px 13px; border-radius: 10px; background: var(--red-soft); color: var(--red) !important; font-size: 13px; }
+    .review { margin: 24px 0; text-align: left; }
+    .review h3 { margin: 0 0 12px; font-size: 17px; }
+    .review-list { display: grid; gap: 12px; margin: 0; padding: 0; list-style: none; }
+    .review-item { padding: 14px; border: 1px solid var(--line); border-radius: 11px; background: var(--option); }
+    .review-question { margin: 0 0 8px; font-weight: 700; }
+    .review-answer { margin: 3px 0 0; font-size: 13px; }
+    .review-answer.wrong { color: var(--red); }
+    .review-answer.correct { color: var(--green); }
     [hidden] { display: none !important; }
     @keyframes shake { 20%, 60% { transform: translateX(-6px); } 40%, 80% { transform: translateX(6px); } }
     @keyframes pop { 50% { transform: scale(1.025); } }
@@ -150,6 +158,11 @@
           <div class="result-score"><span class="result-score-label">Personal best</span><strong id="result-best"></strong><span class="result-score-detail">questions correct</span></div>
         </div>
         <p id="result-storage-warning" class="result-storage-warning" role="status" hidden>Your personal best could not be saved to this browser. It will only be available during this visit.</p>
+        <section class="review" aria-labelledby="review-title">
+          <h3 id="review-title">Review your answers</h3>
+          <p id="review-message" hidden></p>
+          <ul id="review-list" class="review-list"></ul>
+        </section>
         <button id="restart" class="primary" type="button">Play again <span aria-hidden="true">↗</span></button>
       </div>
     </section>
@@ -177,6 +190,7 @@
     let index = 0;
     let score = 0;
     let answered = false;
+    let missedQuestions = [];
     let bestScore = null;
     let bestScoreStorageAvailable = true;
 
@@ -227,6 +241,11 @@
       const current = questions[index];
       const isCorrect = choice === current.correct;
       if (isCorrect) score++;
+      else missedQuestions.push({
+        question: current.question,
+        selected: current.answers[choice],
+        correct: current.answers[current.correct]
+      });
       document.getElementById("score").textContent = `${score} / ${questions.length}`;
       document.getElementById("progress").setAttribute("aria-valuenow", index + 1);
       document.getElementById("progress-fill").style.width = `${(index + 1) / questions.length * 100}%`;
@@ -274,6 +293,30 @@
       document.getElementById("result-score").textContent = `${score} / ${questions.length}`;
       document.getElementById("result-best").textContent = `${bestScore} / ${questions.length}`;
       document.getElementById("result-storage-warning").hidden = bestScoreStorageAvailable;
+      const reviewMessage = document.getElementById("review-message");
+      const reviewList = document.getElementById("review-list");
+      reviewList.replaceChildren();
+      reviewMessage.hidden = missedQuestions.length > 0;
+      reviewList.hidden = missedQuestions.length === 0;
+      if (missedQuestions.length === 0) {
+        reviewMessage.textContent = "Perfect run! You didn't miss any questions.";
+      } else {
+        missedQuestions.forEach(({ question, selected, correct }) => {
+          const item = document.createElement("li");
+          item.className = "review-item";
+          const questionText = document.createElement("p");
+          questionText.className = "review-question";
+          questionText.textContent = question;
+          const selectedAnswer = document.createElement("p");
+          selectedAnswer.className = "review-answer wrong";
+          selectedAnswer.textContent = `Your answer: ${selected}`;
+          const correctAnswer = document.createElement("p");
+          correctAnswer.className = "review-answer correct";
+          correctAnswer.textContent = `Correct answer: ${correct}`;
+          item.append(questionText, selectedAnswer, correctAnswer);
+          reviewList.append(item);
+        });
+      }
       result.focus();
     }
 
@@ -289,6 +332,11 @@
     document.getElementById("restart").addEventListener("click", () => {
       index = 0;
       score = 0;
+      missedQuestions = [];
+      document.getElementById("review-list").replaceChildren();
+      document.getElementById("review-list").hidden = false;
+      document.getElementById("review-message").textContent = "";
+      document.getElementById("review-message").hidden = true;
       result.hidden = true;
       quiz.hidden = false;
       renderQuestion();
